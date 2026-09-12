@@ -1,0 +1,282 @@
+@startuml Kindergarten_Management_System_ERD
+
+' Design-stage ERD. See docs/database/database-design.md for full rationale,
+' Open Questions, and traceability to Functional Requirements / Business Rules.
+' No EF Core entities or migrations exist yet — this is a design artifact only.
+
+hide circle
+skinparam linetype ortho
+
+entity "roles" as roles {
+  * id : smallint <<PK>>
+  --
+  * name : text <<unique>>
+}
+
+entity "users" as users {
+  * id : uuid <<PK>>
+  --
+  * role_id : smallint <<FK>>
+  * full_name : text
+  * login_identifier : text <<unique>>
+  * credential_reference : text
+  * is_active : boolean
+  * created_at : timestamptz
+}
+note right of users
+  Credential storage shape depends on
+  authentication strategy (Open Question #1).
+end note
+
+entity "teachers" as teachers {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK, unique>>
+  * created_at : timestamptz
+}
+note right of teachers
+  HR fields beyond the User link are
+  not yet defined (Open Question).
+end note
+
+entity "children" as children {
+  * id : uuid <<PK>>
+  --
+  class_id : uuid <<FK, nullable>>
+  * full_name : text
+  * date_of_birth : date
+  * enrollment_date : date
+}
+note right of children
+  No status column: enrollment/status
+  values are Open Question #4.
+end note
+
+entity "child_guardians" as child_guardians {
+  * child_id : uuid <<FK, PK>>
+  * guardian_user_id : uuid <<FK, PK>>
+}
+note bottom of child_guardians
+  guardian_user_id must reference a Parent-role
+  user; enforced at app layer, not by DB constraint.
+end note
+
+entity "classes" as classes {
+  * id : uuid <<PK>>
+  --
+  homeroom_teacher_id : uuid <<FK, nullable>>
+  * name : text <<unique>>
+  min_age_months : integer <<nullable>>
+  max_age_months : integer <<nullable>>
+}
+note right of classes
+  Age boundaries and teacher-assignment
+  cardinality are Open Question #3.
+end note
+
+entity "attendances" as attendances {
+  * id : uuid <<PK>>
+  --
+  * child_id : uuid <<FK>>
+  * recorded_by_teacher_id : uuid <<FK>>
+  * attendance_date : date
+  * check_in_time : timestamptz
+  * status : text
+  --
+  unique (child_id, attendance_date)
+}
+note right of attendances
+  status values not constrained
+  (Open Question #5).
+end note
+
+entity "pickups" as pickups {
+  * id : uuid <<PK>>
+  --
+  * attendance_id : uuid <<FK, unique>>
+  * recorded_by_teacher_id : uuid <<FK>>
+  pickup_person_id : uuid <<FK, nullable>>
+  * pickup_time : timestamptz
+}
+note right of pickups
+  Null pickup_person_id is allowed because
+  the requirements only explicitly require
+  checking non-parent pickup persons against
+  the registered list.
+
+  No business meaning is assigned to NULL.
+  Pickup verification and unrecognized-person
+  handling remain Open Question #6.
+end note
+
+entity "registered_pickup_persons" as registered_pickup_persons {
+  * id : uuid <<PK>>
+  --
+  * child_id : uuid <<FK>>
+  * full_name : text
+}
+note right of registered_pickup_persons
+  Further fields (phone, relationship, ID,
+  photo, validity) are Open Question #6.
+end note
+
+entity "quick_health_statuses" as quick_health_statuses {
+  * id : uuid <<PK>>
+  --
+  * child_id : uuid <<FK>>
+  * recorded_by_teacher_id : uuid <<FK>>
+  * recorded_at : timestamptz
+  * notes : text
+}
+
+entity "growth_measurements" as growth_measurements {
+  * id : uuid <<PK>>
+  --
+  * child_id : uuid <<FK>>
+  * recorded_by_user_id : uuid <<FK>>
+  * measured_at : timestamptz
+  height_cm : numeric <<nullable>>
+  weight_kg : numeric <<nullable>>
+  --
+  check (height_cm is not null or weight_kg is not null)
+}
+
+entity "incidents" as incidents {
+  * id : uuid <<PK>>
+  --
+  * child_id : uuid <<FK>>
+  * recorded_by_teacher_id : uuid <<FK>>
+  * occurred_at : timestamptz
+  * description : text
+}
+
+entity "incident_photos" as incident_photos {
+  * id : uuid <<PK>>
+  --
+  * incident_id : uuid <<FK>>
+  * file_reference : text
+}
+
+entity "activity_photos" as activity_photos {
+  * id : uuid <<PK>>
+  --
+  * class_id : uuid <<FK>>
+  * uploaded_by_teacher_id : uuid <<FK>>
+  * uploaded_at : timestamptz
+  * file_reference : text
+}
+note right of activity_photos
+  Photo-only; video upload is
+  Open Question #10.
+end note
+
+entity "tuition_fees" as tuition_fees {
+  * id : uuid <<PK>>
+  --
+  * description : text
+  * amount : numeric
+  --
+  check (amount > 0)
+}
+
+entity "invoices" as invoices {
+  * id : uuid <<PK>>
+  --
+  * child_id : uuid <<FK>>
+  tuition_fee_id : uuid <<FK, nullable>>
+  * amount : numeric
+  * issued_at : timestamptz
+  * status : text
+  --
+  check (amount > 0)
+  check (status in ('unpaid','paid'))
+}
+note right of invoices
+  Only paid/unpaid are evidenced by
+  FR-TUITION-06; further statuses are
+  Open Question #14.
+end note
+
+entity "payments" as payments {
+  * id : uuid <<PK>>
+  --
+  * invoice_id : uuid <<FK>>
+  * amount : numeric
+  * paid_at : timestamptz
+  external_reference : text <<nullable>>
+  --
+  check (amount > 0)
+}
+note right of payments
+  Provider-specific fields deferred
+  (Open Question #13).
+end note
+
+entity "weekly_menus" as weekly_menus {
+  * id : uuid <<PK>>
+  --
+  * week_start_date : date <<unique>>
+}
+
+entity "menu_entries" as menu_entries {
+  * id : uuid <<PK>>
+  --
+  * weekly_menu_id : uuid <<FK>>
+  * day_of_week : smallint
+  * description : text
+  --
+  unique (weekly_menu_id, day_of_week)
+}
+
+entity "notifications" as notifications {
+  * id : uuid <<PK>>
+  --
+  * recipient_user_id : uuid <<FK>>
+  * message : text
+  * created_at : timestamptz
+}
+note right of notifications
+  No read/unread column, no trigger
+  linkage (Open Question #16).
+end note
+
+' --- Relationships ---
+
+roles ||--o{ users : "role_id"
+users ||--o| teachers : "user_id (1:1)"
+users ||--o{ child_guardians : "guardian_user_id"
+children ||--o{ child_guardians : "child_id"
+
+classes |o--o{ children : "class_id"
+teachers |o--o{ classes : "homeroom_teacher_id"
+
+children ||--o{ attendances : "child_id"
+teachers ||--o{ attendances : "recorded_by_teacher_id"
+
+attendances ||--o| pickups : "attendance_id"
+teachers ||--o{ pickups : "recorded_by_teacher_id"
+registered_pickup_persons |o--o{ pickups : "pickup_person_id"
+children ||--o{ registered_pickup_persons : "child_id"
+
+children ||--o{ quick_health_statuses : "child_id"
+teachers ||--o{ quick_health_statuses : "recorded_by_teacher_id"
+
+children ||--o{ growth_measurements : "child_id"
+users ||--o{ growth_measurements : "recorded_by_user_id"
+
+children ||--o{ incidents : "child_id"
+teachers ||--o{ incidents : "recorded_by_teacher_id"
+incidents ||--o{ incident_photos : "incident_id"
+
+classes ||--o{ activity_photos : "class_id"
+teachers ||--o{ activity_photos : "uploaded_by_teacher_id"
+
+children ||--o{ invoices : "child_id"
+tuition_fees |o--o{ invoices : "tuition_fee_id"
+invoices ||--o{ payments : "invoice_id"
+
+weekly_menus ||--o{ menu_entries : "weekly_menu_id"
+
+users ||--o{ notifications : "recipient_user_id"
+
+@enduml

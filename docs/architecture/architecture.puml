@@ -1,0 +1,77 @@
+@startuml Kindergarten_Management_System_Architecture
+
+' Design-stage architecture diagram. See docs/architecture/architecture.md for
+' full rationale and Open Question dependencies. No source code exists yet.
+
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+package "Frontend (Next.js / React / TypeScript)" {
+  [Pages / Routes\n(by role)] as Pages
+  [Reusable Components] as Components
+  [TanStack Query hooks] as Query
+  [Axios client] as Axios
+  Pages --> Components
+  Pages --> Query
+  Query --> Axios
+}
+
+package "Backend (ASP.NET Core Web API)" {
+
+  package "Request pipeline\n(wrapped by Global Exception Middleware)" as Pipeline {
+    [Authentication middleware\n(mechanism: Open Question #1)] as AuthN
+    [Authorization\n(role-based)] as AuthZ
+    [Controllers + DTOs\n(Api layer)] as Api
+    [Services\n(Application / business rules)] as Services
+
+    AuthN --> AuthZ
+    AuthZ --> Api
+    Api --> Services
+  }
+
+  note top of Pipeline
+    Global Exception Middleware wraps this
+    entire pipeline (authentication through
+    services) and intercepts any exception
+    raised at any stage — it is not called
+    directly by Controllers.
+  end note
+
+  [Domain models] as Domain
+  [EF Core DbContext\n(Infrastructure)] as EfCore
+  [Serilog] as Logging
+  [IFileStorageService\n(Infrastructure impl. pending)] as Storage
+  [IPaymentService\n(Infrastructure impl. pending)] as Payment
+
+  Services --> Domain
+  Services --> EfCore
+  Services --> Storage
+  Services --> Payment
+  Pipeline ..> Logging
+}
+
+database "PostgreSQL\n(Supabase-hosted)" as DB {
+}
+
+cloud "File Storage\n(provider TBD — Open Question)" as StorageProvider
+cloud "Payment Provider\n(TBD — Open Question)" as PaymentProvider
+
+Axios --> AuthN : REST / JSON (HTTPS)
+EfCore --> DB : SQL (only backend\naccesses the database)
+Storage --> StorageProvider : implementation deferred
+Payment --> PaymentProvider : implementation deferred
+
+note bottom of DB
+  Frontend never connects
+  to PostgreSQL/Supabase
+  directly (CLAUDE.md §4).
+end note
+
+note bottom of AuthN
+  Authentication mechanism and
+  permission granularity are
+  Open Questions #1 and #2 —
+  not decided by this diagram.
+end note
+
+@enduml
