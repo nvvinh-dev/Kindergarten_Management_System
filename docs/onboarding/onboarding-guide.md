@@ -1,6 +1,6 @@
 # Hướng dẫn Onboarding — Backend & Frontend Dev
 
-**Phiên bản 2 — đã audit lại theo code thật trong repo (12/09/2026).**
+**Phiên bản 2.1 — đã audit lại theo code thật trong repo (cập nhật 13/09/2026).**
 
 Đọc hết tài liệu này trước khi code dòng đầu tiên. Mọi thứ mô tả từ mục 2 trở đi đều đã chạy
 thật trên máy Lead (build sạch 0 warning, login trả token thật), không phải kế hoạch.
@@ -17,9 +17,9 @@ thật trên máy Lead (build sạch 0 warning, login trả token thật), khôn
 Nếu bất kỳ dòng nào dưới đây chưa được tick, **báo Lead trước khi setup**, vì làm tiếp sẽ
 lãng phí thời gian:
 
-- [ ] Toàn bộ thư mục `backend/` đã được commit và push lên `origin/develop`.
-- [ ] `DECISIONS.md` bản mới nhất (có **D37**, **D38**, có ghi chú Swagger ở **D9**) đã được push.
-- [ ] `CLAUDE.md`, `PROGRESS.md`, `TASKS.md` trên remote đã được dọn hoặc xác nhận còn hiệu lực.
+- [x] ~~Toàn bộ `backend/` đã push lên `origin/develop`~~ — **đã xong** (71 file, gồm cả Migrations).
+- [x] ~~`DECISIONS.md` bản mới nhất (D37, D38, ghi chú Swagger ở D9)~~ — **đã push**.
+- [x] ~~Dọn `CLAUDE.md`, `PROGRESS.md`, `TASKS.md`~~ — **đã gỡ khỏi repo** (xem 7.2).
 - [x] ~~CORS đã bật trong `Program.cs`~~ — **đã xong**, xem 4.1.
 - [x] ~~Rate limit `/api/auth/login`~~ — **đã xong**, xem 5.6.
 - [x] ~~Viết `docs/api/api-conventions.md`~~ — **đã xong**.
@@ -97,6 +97,8 @@ git checkout develop
 ```bash
 git pull
 ```
+
+> ⚠️ Đã từng clone repo này **trước 13/09/2026**? Xóa thư mục cũ và clone lại — xem 7.2.
 
 Sau bước này, `ls backend` phải thấy 4 thư mục `NhaTre.*`. **Nếu `backend` trống hoặc không
 tồn tại → dừng lại, báo Lead** (mục 0).
@@ -468,7 +470,8 @@ Hệ quả:
 - `develop` là nhánh tích hợp — **không code trực tiếp trên `develop`**.
 - `main` chỉ nhận merge từ `develop` khi có bản ổn định, **do Lead quyết định thời điểm**.
   Không ai tự mở PR vào `main`.
-- Mỗi module làm trên nhánh riêng. 8 nhánh đã có sẵn trên remote:
+- Mỗi module làm trên nhánh riêng. 8 nhánh đã có sẵn trên remote, **tất cả đều xuất phát từ
+  cùng một gốc với `develop`** nên merge/PR chạy bình thường:
   `feature/auth`, `feature/student`, `feature/teacher`, `feature/class`, `feature/attendance`,
   `feature/health`, `feature/tuition`, `feature/notification`.
   Frontend **chưa có nhánh** — Lead tạo thêm `feature/fe-teacher-medical` và
@@ -492,6 +495,28 @@ Sau đó mở Pull Request vào `develop`, gán Lead review.
 
 **Commit message:** `<loại>: <mô tả ngắn tiếng Việt>` — loại gồm `feat` / `fix` / `refactor` /
 `docs` / `chore`. Ví dụ: `feat: thêm API điểm danh buổi sáng cho giáo viên`.
+
+### 7.2 Lịch sử repo đã được dựng lại ngày 13/09/2026 — đọc 1 lần rồi thôi
+
+Toàn bộ repo hiện bắt đầu từ **một commit gốc duy nhất** (`chore: dựng lại repo với 1 lịch sử
+sạch duy nhất`). Lý do: trước đó có thao tác `git reset` chạy lần lượt qua mọi nhánh, khiến mỗi
+nhánh thành một lịch sử riêng **không có tổ tiên chung** — không merge, không mở PR giữa các
+nhánh được.
+
+Ảnh hưởng tới bạn:
+
+- **Nếu bạn đã từng clone repo này trước 13/09/2026**: bản local của bạn đã lỗi thời và lệch
+  lịch sử. **Xóa thư mục cũ đi và clone lại từ đầu** — đừng `git pull`, sẽ báo lỗi
+  "unrelated histories" hoặc kéo về lịch sử hỏng.
+- **Nếu bạn clone lần đầu**: không cần quan tâm, cứ làm theo mục 3.1.
+- `CLAUDE.md`, `PROGRESS.md`, `TASKS.md` **đã được gỡ khỏi repo**. Nguồn chân lý duy nhất về
+  quyết định kỹ thuật là `DECISIONS.md`; quản lý task ở Trello (D33).
+- Lịch sử cũ được sao lưu đầy đủ tại `D:\Projects\KMS_git_backup_2026-09-13.bundle` (máy Lead).
+  Cần tra lại gì trong đó thì hỏi Lead.
+
+**Bài học cho cả nhóm:** không bao giờ chạy `git reset --hard`, `git push --force` hay bất kỳ
+script git hàng loạt nào trên repo chung. Không chắc lệnh git sẽ làm gì → **hỏi trước khi Enter**.
+Push sớm và push thường xuyên: code chỉ thực sự an toàn khi đã nằm trên GitHub.
 
 ### 7.1 Definition of Done — PR chỉ được review khi đủ các mục này
 
